@@ -18,19 +18,26 @@ final class TimerViewModel: ObservableObject {
     // MARK: - UserDefaults keys (where settings are saved on disk)
 
     private enum Keys {
-        static let focusMinutes            = "focusMinutes"
-        static let shortBreakMinutes       = "shortBreakMinutes"
-        static let longBreakMinutes        = "longBreakMinutes"
+        // Durations are now stored as a total number of SECONDS.
+        static let focusSeconds            = "focusSeconds"
+        static let shortBreakSeconds       = "shortBreakSeconds"
+        static let longBreakSeconds        = "longBreakSeconds"
         static let sessionsBeforeLongBreak = "sessionsBeforeLongBreak"
         static let autoStartNext           = "autoStartNext"
+
+        // Old minute-based keys, kept only so existing saved settings can be
+        // migrated to the new seconds keys on first launch after the update.
+        static let legacyFocusMinutes      = "focusMinutes"
+        static let legacyShortBreakMinutes = "shortBreakMinutes"
+        static let legacyLongBreakMinutes  = "longBreakMinutes"
     }
 
     // MARK: - Default values (used on first launch and "Reset to Defaults")
 
     private enum Defaults {
-        static let focusMinutes            = 25
-        static let shortBreakMinutes       = 5
-        static let longBreakMinutes        = 15
+        static let focusSeconds            = 25 * 60   // 25:00
+        static let shortBreakSeconds       = 5 * 60    // 05:00
+        static let longBreakSeconds        = 15 * 60   // 15:00
         static let sessionsBeforeLongBreak = 4
         static let autoStartNext           = false
     }
@@ -40,13 +47,14 @@ final class TimerViewModel: ObservableObject {
     // Each setting saves itself to UserDefaults whenever it changes (didSet).
     // Changing a duration while idle also refreshes the time shown on screen.
 
-    @Published var focusMinutes: Int {
+    // Total length of each mode, in seconds.
+    @Published var focusSeconds: Int {
         didSet { saveSettings(); refreshTimeIfIdle() }
     }
-    @Published var shortBreakMinutes: Int {
+    @Published var shortBreakSeconds: Int {
         didSet { saveSettings(); refreshTimeIfIdle() }
     }
-    @Published var longBreakMinutes: Int {
+    @Published var longBreakSeconds: Int {
         didSet { saveSettings(); refreshTimeIfIdle() }
     }
     @Published var sessionsBeforeLongBreak: Int {
@@ -79,16 +87,29 @@ final class TimerViewModel: ObservableObject {
         // Load each setting, falling back to the default if nothing is saved yet.
         // (Property observers / didSet do NOT fire for assignments inside init.)
         // We read the focus value into a local first because Swift won't let us
-        // access `self.focusMinutes` until every stored property is initialized.
-        let loadedFocusMinutes  = (store.object(forKey: Keys.focusMinutes) as? Int) ?? Defaults.focusMinutes
-        focusMinutes            = loadedFocusMinutes
-        shortBreakMinutes       = (store.object(forKey: Keys.shortBreakMinutes) as? Int) ?? Defaults.shortBreakMinutes
-        longBreakMinutes        = (store.object(forKey: Keys.longBreakMinutes) as? Int) ?? Defaults.longBreakMinutes
+        // access `self.focusSeconds` until every stored property is initialized.
+        let loadedFocusSeconds  = TimerViewModel.loadSeconds(store, Keys.focusSeconds, Keys.legacyFocusMinutes, Defaults.focusSeconds)
+        focusSeconds            = loadedFocusSeconds
+        shortBreakSeconds       = TimerViewModel.loadSeconds(store, Keys.shortBreakSeconds, Keys.legacyShortBreakMinutes, Defaults.shortBreakSeconds)
+        longBreakSeconds        = TimerViewModel.loadSeconds(store, Keys.longBreakSeconds, Keys.legacyLongBreakMinutes, Defaults.longBreakSeconds)
         sessionsBeforeLongBreak = (store.object(forKey: Keys.sessionsBeforeLongBreak) as? Int) ?? Defaults.sessionsBeforeLongBreak
         autoStartNext           = (store.object(forKey: Keys.autoStartNext) as? Bool) ?? Defaults.autoStartNext
 
         // Start on a fresh Focus session.
-        secondsRemaining = loadedFocusMinutes * 60
+        secondsRemaining = loadedFocusSeconds
+    }
+
+    /// Reads a duration in seconds. If only the old minute-based value exists
+    /// (from a previous version), it is converted so settings aren't lost.
+    private static func loadSeconds(_ store: UserDefaults, _ secondsKey: String,
+                                    _ legacyMinutesKey: String, _ defaultSeconds: Int) -> Int {
+        if let seconds = store.object(forKey: secondsKey) as? Int {
+            return seconds
+        }
+        if let minutes = store.object(forKey: legacyMinutesKey) as? Int {
+            return minutes * 60
+        }
+        return defaultSeconds
     }
 
     deinit {
@@ -174,9 +195,9 @@ final class TimerViewModel: ObservableObject {
 
     /// Restore every setting to its default value.
     func resetToDefaults() {
-        focusMinutes            = Defaults.focusMinutes
-        shortBreakMinutes       = Defaults.shortBreakMinutes
-        longBreakMinutes        = Defaults.longBreakMinutes
+        focusSeconds            = Defaults.focusSeconds
+        shortBreakSeconds       = Defaults.shortBreakSeconds
+        longBreakSeconds        = Defaults.longBreakSeconds
         sessionsBeforeLongBreak = Defaults.sessionsBeforeLongBreak
         autoStartNext           = Defaults.autoStartNext
         reset()
@@ -230,12 +251,12 @@ final class TimerViewModel: ObservableObject {
         NotificationManager.cancelScheduled()
     }
 
-    /// Minutes -> seconds for a given mode.
+    /// Total seconds for a given mode.
     private func duration(for mode: TimerMode) -> Int {
         switch mode {
-        case .focus:      return focusMinutes * 60
-        case .shortBreak: return shortBreakMinutes * 60
-        case .longBreak:  return longBreakMinutes * 60
+        case .focus:      return focusSeconds
+        case .shortBreak: return shortBreakSeconds
+        case .longBreak:  return longBreakSeconds
         }
     }
 
@@ -249,9 +270,9 @@ final class TimerViewModel: ObservableObject {
     /// Write all settings to UserDefaults.
     private func saveSettings() {
         let store = UserDefaults.standard
-        store.set(focusMinutes,            forKey: Keys.focusMinutes)
-        store.set(shortBreakMinutes,       forKey: Keys.shortBreakMinutes)
-        store.set(longBreakMinutes,        forKey: Keys.longBreakMinutes)
+        store.set(focusSeconds,            forKey: Keys.focusSeconds)
+        store.set(shortBreakSeconds,       forKey: Keys.shortBreakSeconds)
+        store.set(longBreakSeconds,        forKey: Keys.longBreakSeconds)
         store.set(sessionsBeforeLongBreak, forKey: Keys.sessionsBeforeLongBreak)
         store.set(autoStartNext,           forKey: Keys.autoStartNext)
     }

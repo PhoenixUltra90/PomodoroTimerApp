@@ -6,8 +6,9 @@
 //  long break, and the auto-start toggle. It binds directly to the shared
 //  view model, so every change is saved to UserDefaults automatically.
 //
-//  Each number can be TYPED into a text field or nudged with the stepper.
-//  Values are clamped to a safe range so a typo can't break the timer.
+//  Each duration can be TYPED as minutes AND seconds. The session count can be
+//  typed or stepped. Values are clamped to safe ranges so a typo can't break
+//  the timer (a duration is always at least one second).
 //
 
 import SwiftUI
@@ -22,21 +23,21 @@ struct SettingsView: View {
 
     var body: some View {
         Form {
-            // Durations
-            Section("Durations (minutes)") {
-                NumberRow(title: "Focus", value: $viewModel.focusMinutes,
-                          range: 1...180, unit: "min", isFocused: $isEditing)
-                NumberRow(title: "Short Break", value: $viewModel.shortBreakMinutes,
-                          range: 1...60, unit: "min", isFocused: $isEditing)
-                NumberRow(title: "Long Break", value: $viewModel.longBreakMinutes,
-                          range: 1...120, unit: "min", isFocused: $isEditing)
+            // Durations (minutes + seconds)
+            Section("Durations") {
+                DurationRow(title: "Focus",
+                            totalSeconds: $viewModel.focusSeconds, isFocused: $isEditing)
+                DurationRow(title: "Short Break",
+                            totalSeconds: $viewModel.shortBreakSeconds, isFocused: $isEditing)
+                DurationRow(title: "Long Break",
+                            totalSeconds: $viewModel.longBreakSeconds, isFocused: $isEditing)
             }
 
             // Cycle length
             Section("Sessions") {
                 NumberRow(title: "Focus sessions before long break",
                           value: $viewModel.sessionsBeforeLongBreak,
-                          range: 1...12, unit: nil, isFocused: $isEditing)
+                          range: 1...12, isFocused: $isEditing)
             }
 
             // Auto-start
@@ -67,13 +68,72 @@ struct SettingsView: View {
     }
 }
 
-/// A single settings row: a title, a typeable number field, an optional unit
-/// label (e.g. "min"), and a stepper. The value is kept inside `range`.
+/// A duration row with typeable minutes and seconds fields, e.g. "25 min 30 sec".
+/// Edits update the bound total-seconds value, kept at a minimum of one second.
+private struct DurationRow: View {
+    let title: String
+    @Binding var totalSeconds: Int
+    @FocusState.Binding var isFocused: Bool
+
+    private let maxMinutes = 180
+
+    // Minutes part of the total (0...maxMinutes).
+    private var minutes: Binding<Int> {
+        Binding(
+            get: { totalSeconds / 60 },
+            set: { newValue in
+                let m = min(max(newValue, 0), maxMinutes)
+                totalSeconds = clampTotal(m * 60 + totalSeconds % 60)
+            }
+        )
+    }
+
+    // Seconds part of the total (0...59).
+    private var seconds: Binding<Int> {
+        Binding(
+            get: { totalSeconds % 60 },
+            set: { newValue in
+                let s = min(max(newValue, 0), 59)
+                totalSeconds = clampTotal((totalSeconds / 60) * 60 + s)
+            }
+        )
+    }
+
+    /// Keep the duration between 1 second and maxMinutes:59.
+    private func clampTotal(_ value: Int) -> Int {
+        min(max(value, 1), maxMinutes * 60 + 59)
+    }
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Text(title)
+
+            Spacer(minLength: 8)
+
+            numberField(minutes, placeholder: "0")
+            Text("min").foregroundStyle(.secondary)
+
+            numberField(seconds, placeholder: "00")
+            Text("sec").foregroundStyle(.secondary)
+        }
+    }
+
+    private func numberField(_ binding: Binding<Int>, placeholder: String) -> some View {
+        TextField(placeholder, value: binding, format: .number)
+            .keyboardType(.numberPad)
+            .multilineTextAlignment(.trailing)
+            .frame(width: 44)
+            .focused($isFocused)
+            .textFieldStyle(.roundedBorder)
+    }
+}
+
+/// A whole-number row with a typeable field and a stepper (used for the
+/// "sessions before long break" count).
 private struct NumberRow: View {
     let title: String
     @Binding var value: Int
     let range: ClosedRange<Int>
-    var unit: String?
     @FocusState.Binding var isFocused: Bool
 
     var body: some View {
@@ -85,14 +145,9 @@ private struct NumberRow: View {
             TextField("", value: $value, format: .number)
                 .keyboardType(.numberPad)
                 .multilineTextAlignment(.trailing)
-                .frame(width: 56)
+                .frame(width: 44)
                 .focused($isFocused)
                 .textFieldStyle(.roundedBorder)
-
-            if let unit {
-                Text(unit)
-                    .foregroundStyle(.secondary)
-            }
 
             Stepper("", value: $value, in: range)
                 .labelsHidden()

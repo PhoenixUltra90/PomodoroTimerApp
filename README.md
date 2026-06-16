@@ -15,7 +15,7 @@ and long breaks.
 - **Local notification** when a session ends while the app is in the background
 - Wall-clock-accurate countdown that stays correct after backgrounding
 - **Settings** (saved with `UserDefaults`):
-  - Focus, short-break, and long-break lengths
+  - Focus, short-break, and long-break lengths — typeable in **minutes and seconds**
   - Focus sessions before a long break
   - Auto-start next session (off by default)
   - Reset to defaults
