@@ -16,6 +16,11 @@ struct PomodoroTimerApp: App {
     // The whole app shares this single source of truth.
     @StateObject private var viewModel = TimerViewModel()
 
+    init() {
+        // Ask for permission to send the end-of-session alert (prompts once).
+        NotificationManager.requestAuthorization()
+    }
+
     var body: some Scene {
         WindowGroup {
             ContentView(viewModel: viewModel)

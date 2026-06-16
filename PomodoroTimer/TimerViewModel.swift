@@ -66,6 +66,11 @@ final class TimerViewModel: ObservableObject {
     /// The repeating 1-second timer. It is nil whenever the timer is paused/stopped.
     private var timer: Timer?
 
+    /// The exact wall-clock moment the current session will reach 0.
+    /// We count down to this date (instead of just subtracting 1 each tick) so the
+    /// time stays correct even if the app was backgrounded for a while.
+    private var endDate: Date?
+
     // MARK: - Setup
 
     init() {
@@ -123,16 +128,33 @@ final class TimerViewModel: ObservableObject {
         guard !isRunning, secondsRemaining > 0 else { return }
         isRunning = true
 
+        // Record when this session ends and schedule the matching alert.
+        endDate = Date().addingTimeInterval(TimeInterval(secondsRemaining))
+        NotificationManager.scheduleSessionEnd(after: secondsRemaining, modeTitle: mode.title)
+
         // Always replace any existing timer to avoid double-counting.
         timer?.invalidate()
         timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
-            self?.tick()
+            self?.updateRemaining()
         }
     }
 
     /// Pause without losing the remaining time.
     func pause() {
+        // Capture the precise remaining time before we throw away the end date.
+        if let endDate {
+            secondsRemaining = max(0, Int(endDate.timeIntervalSinceNow.rounded(.up)))
+        }
         stopTimer()
+    }
+
+    /// Re-check the remaining time when the app comes back to the foreground.
+    /// While backgrounded the 1-second timer is paused by the system, so this
+    /// catches the display up (and finishes the session if time already ran out).
+    func syncToForeground() {
+        if isRunning {
+            updateRemaining()
+        }
     }
 
     /// Reset the CURRENT mode back to its full length.
@@ -162,12 +184,13 @@ final class TimerViewModel: ObservableObject {
 
     // MARK: - Private helpers
 
-    /// Called once per second by the timer.
-    private func tick() {
-        if secondsRemaining > 0 {
-            secondsRemaining -= 1
-        }
-        if secondsRemaining == 0 {
+    /// Called once per second by the timer (and on returning to the foreground).
+    /// Recomputes the remaining time from the saved end date.
+    private func updateRemaining() {
+        guard let endDate else { return }
+        let remaining = Int(endDate.timeIntervalSinceNow.rounded(.up))
+        secondsRemaining = max(0, remaining)
+        if remaining <= 0 {
             finishSession()
         }
     }
@@ -198,11 +221,13 @@ final class TimerViewModel: ObservableObject {
         }
     }
 
-    /// Stop and clear the timer.
+    /// Stop and clear the timer, and cancel any pending end-of-session alert.
     private func stopTimer() {
         timer?.invalidate()
         timer = nil
+        endDate = nil
         isRunning = false
+        NotificationManager.cancelScheduled()
     }
 
     /// Minutes -> seconds for a given mode.

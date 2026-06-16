@@ -13,6 +13,9 @@ struct ContentView: View {
     // We observe the shared view model created in PomodoroTimerApp.
     @ObservedObject var viewModel: TimerViewModel
 
+    // Tells us when the app moves between background and foreground.
+    @Environment(\.scenePhase) private var scenePhase
+
     var body: some View {
         NavigationStack {
             VStack(spacing: 32) {
@@ -36,6 +39,12 @@ struct ContentView: View {
         }
         // Tint everything (back button, etc.) with the current mode color.
         .tint(viewModel.mode.accentColor)
+        // When the app returns to the foreground, catch the timer up.
+        .onChange(of: scenePhase) { _, newPhase in
+            if newPhase == .active {
+                viewModel.syncToForeground()
+            }
+        }
     }
 
     // MARK: - Pieces of the screen

@@ -12,6 +12,8 @@ and long breaks.
 - Session counter (e.g. *Pomodoro 1 of 4*)
 - Automatic mode switching — long break after every *N* focus sessions
 - Haptic + system-sound feedback when a session ends
+- **Local notification** when a session ends while the app is in the background
+- Wall-clock-accurate countdown that stays correct after backgrounding
 - **Settings** (saved with `UserDefaults`):
   - Focus, short-break, and long-break lengths
   - Focus sessions before a long break
@@ -30,6 +32,7 @@ and long breaks.
 | `ContentView.swift` | Main timer screen (display + buttons only). |
 | `SettingsView.swift` | Settings form. |
 | `Haptics.swift` | End-of-session haptic + sound helper. |
+| `NotificationManager.swift` | Schedules/cancels the end-of-session local notification. |
 
 ## Getting started
 
@@ -56,8 +59,8 @@ To run on a real iPhone: select your device, then in the **PomodoroTimer** targe
 
 ## Possible future upgrades
 
-- Local notifications when a session ends in the background
 - Daily streaks and statistics
 - Selectable color themes
 - Home/Lock Screen widget (WidgetKit + Live Activity)
+- A custom alert sound and richer notification actions
 - iCloud sync of session history
