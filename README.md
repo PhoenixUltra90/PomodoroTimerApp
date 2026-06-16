@@ -23,16 +23,24 @@ and long breaks.
 
 ## Project structure
 
-| File | Responsibility |
-|------|----------------|
-| `PomodoroTimerApp.swift` | App entry point; creates the shared `TimerViewModel`. |
-| `TimerMode.swift` | The three modes and their title, icon, and color. |
-| `TimerViewModel.swift` | All timer logic and saved settings (the MVVM "brain"). |
-| `ProgressRingView.swift` | Reusable circular progress ring. |
-| `ContentView.swift` | Main timer screen (display + buttons only). |
-| `SettingsView.swift` | Settings form. |
-| `Haptics.swift` | End-of-session haptic + sound helper. |
-| `NotificationManager.swift` | Schedules/cancels the end-of-session local notification. |
+Source files are grouped by their MVVM role:
+
+```
+PomodoroTimer/
+├─ PomodoroTimerApp.swift     App entry point; creates the shared TimerViewModel.
+├─ Models/
+│  └─ TimerMode.swift         The three modes and their title, icon, and color.
+├─ ViewModels/
+│  └─ TimerViewModel.swift    All timer logic and saved settings (the MVVM "brain").
+├─ Views/
+│  ├─ ContentView.swift       Main timer screen (display + buttons only).
+│  ├─ SettingsView.swift      Settings form.
+│  └─ ProgressRingView.swift  Reusable circular progress ring.
+├─ Support/
+│  ├─ Haptics.swift           End-of-session haptic + sound helper.
+│  └─ NotificationManager.swift  Schedules/cancels the end-of-session local notification.
+└─ Assets.xcassets/           App icon and accent color.
+```
 
 ## Getting started
 
