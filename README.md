@@ -33,16 +33,26 @@ and long breaks.
 
 ## Getting started
 
-1. In Xcode: **File ▸ New ▸ Project… ▸ iOS ▸ App**. Name it `PomodoroTimer`,
-   Interface **SwiftUI**, Language **Swift**.
-2. Delete the auto-generated `PomodoroTimerApp.swift` and `ContentView.swift`.
-3. Drag all the `.swift` files from this repo into the Xcode project navigator,
-   checking **"Copy items if needed"** and the **PomodoroTimer** target.
-4. Pick a simulator (e.g. iPhone 15) and press **Run (⌘R)**.
+This repo is a **ready-to-run Xcode project** — no setup, no dragging files.
 
-> Note: this repository contains the Swift source files. Create the Xcode project
-> as above and add these files to it. Haptics are only felt on a real device; the
-> sound also plays in the Simulator.
+```bash
+git clone https://github.com/PhoenixUltra90/PomodoroTimerApp.git
+cd PomodoroTimerApp
+open PomodoroTimer.xcodeproj
+```
+
+Then in Xcode:
+
+1. Pick a simulator (e.g. **iPhone 16**) from the device menu at the top.
+2. Press **Run (⌘R)**.
+
+To run on a real iPhone: select your device, then in the **PomodoroTimer** target ▸
+**Signing & Capabilities**, set **Team** to your Apple ID and change
+`PRODUCT_BUNDLE_IDENTIFIER` if needed.
+
+> Haptics are only felt on a real device; the end-of-session sound also plays in
+> the Simulator. The project targets **iOS 18.0+** and is built with **Xcode 16+**
+> (uses the synchronized-folder project format).
 
 ## Possible future upgrades
 

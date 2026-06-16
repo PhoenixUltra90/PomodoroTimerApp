@@ -73,14 +73,17 @@ final class TimerViewModel: ObservableObject {
 
         // Load each setting, falling back to the default if nothing is saved yet.
         // (Property observers / didSet do NOT fire for assignments inside init.)
-        focusMinutes            = (store.object(forKey: Keys.focusMinutes) as? Int) ?? Defaults.focusMinutes
+        // We read the focus value into a local first because Swift won't let us
+        // access `self.focusMinutes` until every stored property is initialized.
+        let loadedFocusMinutes  = (store.object(forKey: Keys.focusMinutes) as? Int) ?? Defaults.focusMinutes
+        focusMinutes            = loadedFocusMinutes
         shortBreakMinutes       = (store.object(forKey: Keys.shortBreakMinutes) as? Int) ?? Defaults.shortBreakMinutes
         longBreakMinutes        = (store.object(forKey: Keys.longBreakMinutes) as? Int) ?? Defaults.longBreakMinutes
         sessionsBeforeLongBreak = (store.object(forKey: Keys.sessionsBeforeLongBreak) as? Int) ?? Defaults.sessionsBeforeLongBreak
         autoStartNext           = (store.object(forKey: Keys.autoStartNext) as? Bool) ?? Defaults.autoStartNext
 
         // Start on a fresh Focus session.
-        secondsRemaining = focusMinutes * 60
+        secondsRemaining = loadedFocusMinutes * 60
     }
 
     deinit {
